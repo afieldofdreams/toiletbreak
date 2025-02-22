@@ -1,0 +1,17 @@
+# Python-related files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+toiletenv/
+
+# Flask and database files
+instance/
+marketplace.db
+migrations/
+
+# Environment variables
+.env
+*.log.DS_Store
+.DS_Store
