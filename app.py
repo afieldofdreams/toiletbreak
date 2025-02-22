@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask import flash
@@ -92,33 +92,29 @@ def register():
 @app.route('/request_access', methods=['POST'])
 def request_access():
     if 'user_id' not in session or session['user_type'] != 'driver':
-        return redirect(url_for('login'))
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+
+    data = request.get_json()
+    business_id = data.get('business_id')
+    arrival_time = data.get('arrival_time')
 
     driver = Driver.query.filter_by(user_id=session['user_id']).first()
-    business_id = request.form['business_id']
-    arrival_time = request.form['arrival_time']
-    print(f"arrival_time is {arrival_time}")
-
     if not driver:
-        flash("Driver profile not found!", "danger")
-        return redirect(url_for('driver_dashboard'))
+        return jsonify({"status": "error", "message": "Driver profile not found"}), 404
 
-    # Convert arrival time to datetime format
     try:
-        if "T" in arrival_time:  # Fix for datetime-local input format
-            arrival_time = datetime.strptime(arrival_time, "%Y-%m-%dT%H:%M")
-        else:  # Backup format check
-            arrival_time = datetime.strptime(arrival_time, "%Y-%m-%d %H:%M")
+        arrival_time = datetime.strptime(arrival_time, "%Y-%m-%d %H:%M")
     except ValueError:
-        flash("Invalid arrival time format! Use YYYY-MM-DD HH:MM.", "danger")
-        return redirect(url_for('driver_dashboard'))
+        try:
+            arrival_time = datetime.strptime(arrival_time, "%Y-%m-%dT%H:%M")
+        except ValueError:
+            return jsonify({"status": "error", "message": "Invalid date format. Use YYYY-MM-DD HH:MM"}), 400
 
     new_request = Request(driver_id=driver.id, business_id=business_id, arrival_time=arrival_time)
     db.session.add(new_request)
     db.session.commit()
 
-    flash("Request submitted successfully!", "success")
-    return redirect(url_for('driver_dashboard'))
+    return jsonify({"status": "success", "message": "Request submitted successfully!"})
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -200,8 +196,30 @@ def driver_dashboard():
     driver = Driver.query.filter_by(user_id=user.id).first()
     requests = Request.query.filter_by(driver_id=driver.id).all()
     businesses = Business.query.all()
+    print("Businesses Data:")
+    
+    for b in businesses:
+        print(f"Business: {b.business_name}, Lat: {b.latitude}, Lng: {b.longitude}")
 
-    return render_template('driver_dashboard.html', user=user, driver=driver, businesses=businesses, requests=requests)
+    business_data = [
+        {
+            "business_id": b.id,
+            "business_name": b.business_name,
+            "address": b.address,
+            "latitude": float(b.latitude) if b.latitude is not None else 0.0,  # Default to 0.0
+            "longitude": float(b.longitude) if b.longitude is not None else 0.0,  # Default to 0.0
+        }
+        for b in businesses
+    ]
+
+
+    return render_template(
+        'driver_dashboard.html', 
+        user=user, 
+        driver=driver, 
+        businesses=business_data, 
+        requests=requests,
+        GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
 @app.route('/business_dashboard')
 def business_dashboard():

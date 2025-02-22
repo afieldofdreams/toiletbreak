@@ -15,4 +15,3 @@ migrations/
 .env
 *.log.DS_Store
 .DS_Store
-.env
