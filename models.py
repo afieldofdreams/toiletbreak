@@ -21,6 +21,13 @@ class Business(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     business_name = db.Column(db.String(200), nullable=False)
     address = db.Column(db.String(300), nullable=False)
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    street_number = db.Column(db.String(50))
+    street = db.Column(db.String(100))
+    city = db.Column(db.String(100))
+    state = db.Column(db.String(100))
+    postal_code = db.Column(db.String(20))
     toilet_availability = db.Column(db.Boolean, default=True)
     user = db.relationship('User', backref=db.backref('business', lazy=True))
 

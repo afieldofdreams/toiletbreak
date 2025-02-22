@@ -23,17 +23,18 @@
             <div class="container mt-3">
                 {% for category, message in messages %}
                     <div class="alert alert-{{ category }}">{{ message }}</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 {% endfor %}
             </div>
         {% endif %}
     {% endwith %}
 
     <div class="container mt-5">
-        <h2>Welcome, {{ user.username }}</h2>
-        <p class="lead">Company: {{ user.driver.company_name }}</p>
-        <p>Email: {{ user.driver.email }}</p>
-        <p>Phone Number: {{ user.driver.phone_number }}</p>
-        <p>Rating: {{ user.driver.rating }}</p>
+        <h2>Welcome, {{ driver.drivername }}</h2>
+        <p class="lead">Company: {{ driver.company_name }}</p>
+        <p>Email: {{ driver.email }}</p>
+        <p>Phone Number: {{ driver.phone_number }}</p>
+        <p>Rating: {{ driver.rating if driver.ratine else "Not rated"}}</p>
         
         <h3>Request Access to a Business Facility</h3>
         <form method="POST" action="/request_access">

@@ -5,13 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - Driver-Business Connect</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initAutocomplete"></script>
+    <script>
+        function initAutocomplete() {
+            var input = document.getElementById("autocomplete");
+            var autocomplete = new google.maps.places.Autocomplete(input);
+
+            autocomplete.addListener("place_changed", function() {
+                var place = autocomplete.getPlace();
+                if (!place.geometry) {
+                    return;
+                }
+
+                // Populate hidden fields with lat/lon
+                document.getElementById("latitude").value = place.geometry.location.lat();
+                document.getElementById("longitude").value = place.geometry.location.lng();
+
+                // Autofill address components if available
+                place.address_components.forEach(component => {
+                    const type = component.types[0];
+
+                    if (type === "street_number") {
+                        document.getElementById("street_number").value = component.long_name;
+                    } else if (type === "route") {
+                        document.getElementById("street").value = component.long_name;
+                    } else if (type === "locality") {
+                        document.getElementById("city").value = component.long_name;
+                    } else if (type === "administrative_area_level_1") {
+                        document.getElementById("state").value = component.long_name;
+                    } else if (type === "postal_code") {
+                        document.getElementById("postal_code").value = component.long_name;
+                    }
+                });
+            });
+        }
+    </script>
 </head>
-<body>
+<body onload="initAutocomplete()">
+    
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="container mt-3">
                 {% for category, message in messages %}
                     <div class="alert alert-{{ category }}">{{ message }}</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 {% endfor %}
             </div>
         {% endif %}
@@ -62,8 +99,17 @@
                     <input type="text" class="form-control" id="business_name" name="business_name">
                 </div>
                 <div class="mb-3">
-                    <label for="address" class="form-label">Address</label>
-                    <input type="text" class="form-control" id="address" name="address">
+                    <label for="autocomplete">Address:</label>
+                    <input type="text" id="autocomplete" clas="pac-target-input" name="address" placeholder="Start typing an address" autocomplete="off"><br>
+
+                    <!-- Hidden Fields for Lat/Lon & Address Components -->
+                    <input type="hidden" id="latitude" name="latitude">
+                    <input type="hidden" id="longitude" name="longitude">
+                    <input type="hidden" id="street_number" name="street_number">
+                    <input type="hidden" id="street" name="street">
+                    <input type="hidden" id="city" name="city">
+                    <input type="hidden" id="state" name="state">
+                    <input type="hidden" id="postal_code" name="postal_code">
                 </div>
             </div>
             <button type="submit" class="btn btn-primary">Register</button>
@@ -71,28 +117,32 @@
     </div>
 
     <script>
-        document.getElementById("user_type").addEventListener("change", function() {
+        document.getElementById("user_type").addEventListener("change", function () {
             var driverFields = document.getElementById("driver-fields");
             var businessFields = document.getElementById("business-fields");
+            var addressField = document.getElementById("autocomplete");
 
-            // Hide both by default
-            driverFields.classList.add("d-none");
-            businessFields.classList.add("d-none");
-
-            // Show based on selection
             if (this.value === "driver") {
                 driverFields.classList.remove("d-none");
+                businessFields.classList.add("d-none");
+                addressField.removeAttribute("required");  // ✅ Remove required
             } else if (this.value === "business") {
                 businessFields.classList.remove("d-none");
+                driverFields.classList.add("d-none");
+                addressField.setAttribute("required", "true");  // ✅ Add required
             }
         });
 
-        // Ensure fields stay hidden when the page first loads
-        window.onload = function() {
-            document.getElementById("user_type").value = "";
-            document.getElementById("driver-fields").classList.add("d-none");
-            document.getElementById("business-fields").classList.add("d-none");
-        };
+        document.getElementById("registerForm").addEventListener("submit", function (event) {
+            var userType = document.getElementById("user_type").value;
+            var addressField = document.getElementById("autocomplete");
+
+            if (userType === "business" && addressField.value.trim() === "") {
+                alert("Please enter a valid address.");
+                addressField.focus();
+                event.preventDefault();  // Stop form submission
+            }
+        });
     </script>
 </body>
 </html>
